@@ -1,0 +1,458 @@
+
+1. Municipio
+1.1 Propósito
+Serve de raiz hierárquica para todos os endereços, garantindo centralização e padronização
+dos municípios no sistema.
+1.2 Estrutura
+Coluna
+Tipo
+Nulável
+Padrão
+Descrição
+id_municipio
+INT
+NÃO
+AUTO_INCREMENT
+Chave surrogate; identificador
+único do município
+nome
+VARCHAR(100)
+NÃO
+—
+Nome oficial do município
+(ex: “São Paulo”)
+1.3 Chaves e Índices
+●​ PK: id_municipio (clustered)​
+
+●​ UK: UNIQUE(nome)​
+
+●​ Índice sugerido: INDEX(nome) se houver buscas frequentes por nome​
+
+1.4 Campos Opcionais
+Nenhum campo opcional nesta tabela.
+1.5 Exemplos de uso
+SELECT id_municipio, nome
+  FROM Municipio
+ ORDER BY nome;
+2. Bairro
+2.1 Propósito
+Define sub-regiões de um município, permitindo granularidade nos endereços.
+2.2 Estrutura
+Coluna
+Tipo
+Nulável
+Descrição
+id_bairro
+INT
+NÃO
+Chave surrogate; identificador único
+nome
+VARCHAR(100)
+NÃO
+Nome do bairro
+id_municipio
+INT
+NÃO
+FK → Municipio.id_municipio
+2.3 Chaves e Índices
+●​ PK: id_bairro​
+
+●​ UK: UNIQUE(nome) (ou UNIQUE(nome, id_municipio) para permitir nomes
+repetidos em municípios diferentes)​
+
+●​ FK:​
+
+○​ id_municipio → Municipio(id_municipio)​
+
+■​ ON UPDATE CASCADE, ON DELETE RESTRICT​
+
+●​ Índices sugeridos:​
+
+○​ INDEX(id_municipio) para consultas de bairros por município​
+
+○​ INDEX(nome) se houver pesquisa textual​
+
+2.4 Campos Opcionais
+Nenhum; todos os campos são obrigatórios.
+2.5 Exemplos de uso
+SELECT b.id_bairro, b.nome
+  FROM Bairro b
+ WHERE b.id_municipio = 1;
+
+
+3. Logradouro
+3.1 Propósito
+Catálogo de vias públicas reutilizável em múltiplos endereços, evitando redundância de texto.
+3.2 Estrutura
+Coluna
+Tipo
+Nulável
+Descrição
+id_logradouro
+INT
+NÃO
+Identificador único do logradouro
+nome
+VARCHAR(150)
+NÃO
+Nome da via (ex: “Avenida Paulista”)
+3.3 Chaves e Índices
+●​ PK: id_logradouro​
+
+●​ UK: UNIQUE(nome)​
+
+●​ Índice sugerido: INDEX(nome) para buscas textuais​
+
+3.4 Campos Opcionais
+Nenhum.
+3.5 Exemplos de uso
+SELECT *
+FROM Logradouro
+ WHERE nome LIKE '%Paulista%';
+
+
+4. Endereco
+4.1 Propósito
+Representa a combinação completa de CEP + via + bairro + número (+ complemento) para
+mapear local exato de ocorrências ou pessoas.
+4.2 Estrutura
+Coluna
+Tipo
+Nulável
+Descrição
+id_endereco
+INT
+NÃO
+Identificador único do endereço
+cep
+CHAR(8)
+NÃO
+CEP (apenas dígitos)
+id_logradouro
+INT
+NÃO
+FK → Logradouro.id_logradouro
+id_bairro
+INT
+NÃO
+FK → Bairro.id_bairro
+numero
+VARCHAR(20)
+NÃO
+Número ou identificação do imóvel
+complemento
+VARCHAR(100)
+SIM
+Informação adicional (apt, bloco etc.)
+4.3 Chaves e Índices
+●​ PK: id_endereco​
+
+●​ FK:​
+
+○​ id_logradouro → Logradouro(id_logradouro)​
+
+○​ id_bairro → Bairro(id_bairro)​
+
+●​ Índices sugeridos:​
+○​ INDEX(cep) para buscas por CEP​
+
+○​ INDEX(id_logradouro) e INDEX(id_bairro) para joins rápidos​
+
+4.4 Campos Opcionais
+●​ complemento – NULABLE (apenas se necessário)​
+
+4.5 Exemplos de uso
+SELECT e.*
+  FROM Endereco e
+ WHERE e.cep = '01001000';
+
+
+5. MarcaCelular
+5.1 Propósito
+Catalogar fabricantes, base para hierarquia modelo → aparelho.
+5.2 Estrutura
+Coluna
+Tipo
+Nulável
+Descrição
+id_marca
+INT
+NÃO
+Identificador único da marca
+nome
+VARCHAR(50)
+NÃO
+Nome do fabricante (ex: Samsung)
+5.3 Chaves e Índices
+●​ PK: id_marca​
+
+●​ UK: UNIQUE(nome)​
+●​ Índice sugerido: INDEX(nome) se o catálogo crescer muito​
+
+5.4 Campos Opcionais
+Nenhum.
+5.5 Exemplos de uso
+SELECT * FROM MarcaCelular ORDER BY nome;
+
+
+6. ModeloCelular
+6.1 Propósito
+Listar modelos de cada marca, com unicidade por par (marca, nome).
+6.2 Estrutura
+Coluna
+Tipo
+Nulável
+Descrição
+id_modelo
+INT
+NÃO
+Identificador único do modelo
+id_marca
+INT
+NÃO
+FK → MarcaCelular.id_marca
+nome
+VARCHAR(50)
+NÃO
+Nome do modelo (ex: “iPhone 12”)
+6.3 Chaves e Índices
+●​ PK: id_modelo​
+
+●​ UK: (id_marca, nome)​
+
+●​ FK:​
+
+○​ id_marca → MarcaCelular(id_marca)​
+●​ Índices sugeridos:​
+
+○​ INDEX(id_marca), INDEX(nome) para joins e buscas​
+
+6.4 Campos Opcionais
+Nenhum.
+6.5 Exemplos de uso
+SELECT nome
+  FROM ModeloCelular
+ WHERE id_marca = 2;
+
+
+7. Celular
+7.1 Propósito
+Rastrear aparelhos físicos pelo IMEI, associar ao modelo e data de cadastro.
+7.2 Estrutura
+Coluna
+Tipo
+Nulável
+Padrão
+Descrição
+id_celular
+INT
+NÃO
+AUTO_INCREMENT
+Identificador interno
+imei
+CHAR(15)
+NÃO
+—
+Código IMEI único
+id_modelo
+INT
+NÃO
+—
+FK
+→
+ModeloCelular.id_modelo
+data_cadastro
+TIMESTAMP
+NÃO
+CURRENT_TIMESTAMP
+Quando
+o
+aparelho
+foi
+cadastrado
+7.3 Chaves e Índices
+●​ PK: id_celular​
+●​ UK: UNIQUE(imei)​
+
+●​ FK:​
+
+○​ id_modelo → ModeloCelular(id_modelo)​
+
+●​ Índices sugeridos:​
+
+○​ INDEX(id_modelo) para histórico por modelo​
+
+○​ INDEX(data_cadastro) para consultas recentes​
+
+7.4 Campos Opcionais
+Nenhum.
+7.5 Exemplos de uso
+SELECT *
+  FROM Celular
+ ORDER BY data_cadastro DESC
+ LIMIT 5;
+
+
+8. Pessoa
+8.1 Propósito
+Centralizar cadastro de indivíduos (vítimas, suspeitos, testemunhas).
+8.2 Estrutura
+Coluna
+Tipo
+Nulável
+Descrição
+id_pessoa
+INT
+NÃO
+Identificador único
+nome
+VARCHAR(100)
+NÃO
+Nome completo
+cpf
+CHAR(11)
+NÃO
+CPF único (somente dígitos)
+telefone
+VARCHAR(15)
+SIM
+Telefone de contato (opcional)
+email
+VARCHAR(100)
+SIM
+E-mail de contato (opcional)
+8.3 Chaves e Índices
+●​ PK: id_pessoa​
+
+●​ UK: UNIQUE(cpf)​
+
+●​ Índices sugeridos:​
+
+○​ INDEX(cpf) para busca direta​
+
+○​ INDEX(nome) para consultas por nome​
+
+8.4 Campos Opcionais
+●​ telefone e email – NULABLEs (permitir cadastro mínimo)​
+
+8.5 Exemplos de uso
+SELECT nome, telefone
+  FROM Pessoa
+ WHERE cpf = '12345678901';
+
+
+9. Ocorrencia
+9.1 Propósito
+Registrar eventos de roubo ou furto, com data, descrição e boletim policial único.
+9.2 Estrutura
+Coluna
+Tipo
+Nulável
+Descrição
+id_ocorrencia
+INT
+NÃO
+Identificador único
+tipo
+ENUM('Roubo','Furto')
+NÃO
+Categoria do incidente
+data_hora
+DATETIME
+NÃO
+Data e hora do crime
+descricao
+TEXT
+NÃO
+Detalhes do ocorrido
+boletim
+VARCHAR(50)
+NÃO
+Número do boletim (único)
+9.3 Chaves e Índices
+●​ PK: id_ocorrencia​
+
+●​ UK: UNIQUE(boletim)​
+
+●​ Índices sugeridos:​
+
+○​ INDEX(tipo) para relatórios por categoria​
+
+○​ INDEX(data_hora) para filtros por período​
+
+9.4 Campos Opcionais
+Nenhum.
+9.5 Exemplos de uso
+SELECT tipo, COUNT(*) AS total
+  FROM Ocorrencia
+ WHERE data_hora BETWEEN '2025-04-01' AND '2025-04-30'
+ GROUP BY tipo;
+10. EnderecoOcorrencia
+Propósito: mapeia N:M entre ocorrências e endereços.
+Coluna
+Tipo
+Nulável
+Descrição
+id_endereco
+INT
+NÃO
+FK → Endereco.id_endereco
+id_ocorrencia
+INT
+NÃO
+FK → Ocorrencia.id_ocorrencia
+●​ ​
+PK composta: (id_endereco,id_ocorrencia)​
+
+●​ Índices sugeridos:​
+
+○​ INDEX(id_ocorrencia) para buscar todos os endereços de uma ocorrência​
+
+○​ INDEX(id_endereco) para buscar ocorrências por endereço​
+
+
+11. CelularOcorrencia
+Propósito: vincula aparelhos (IMEIs) a ocorrências, para análise de reincidência.
+Coluna
+Tipo
+Nulável
+Descrição
+id_celular
+INT
+NÃO
+FK → Celular.id_celular
+id_ocorrencia
+INT
+NÃO
+FK → Ocorrencia.id_ocorrencia
+●​ ​
+PK composta: (id_celular,id_ocorrencia)​
+●​ Índices sugeridos:​
+
+○​ INDEX(id_ocorrencia)​
+
+○​ INDEX(id_celular)​
+
+
+12. PessoaOcorrencia
+Propósito: associa indivíduos a ocorrências, permitindo papéis diferenciados.
+Coluna
+Tipo
+Nulável
+Descrição
+id_pessoa
+INT
+NÃO
+FK → Pessoa.id_pessoa
+id_ocorrencia
+INT
+NÃO
+FK → Ocorrencia.id_ocorrencia
+●​ ​
+PK composta: (id_pessoa,id_ocorrencia)​
+
+●​ Índices sugeridos:​
+
+○​ INDEX(id_ocorrencia)​
+
+○​ INDEX(id_pessoa)
